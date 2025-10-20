@@ -15,7 +15,7 @@ jobs:
         platform:
           - ubuntu-latest
           - macos-latest
-          - windows-latest
+          # - windows-latest
     runs-on: ${{ matrix.platform }}
     env:
       UV_PYTHON: ${{ matrix.python-version }}
@@ -26,12 +26,13 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Build package
-        run: uv tool run pybinpack https://github.com/BurntSushi/ripgrep.git --branch 15.0.0
+        run: uv tool run pybinpack https://github.com/BurntSushi/ripgrep.git --branch 14.0.0
 
       - name: Store the distribution packages
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
+          overwrite: true
           path: dist/
 
   publish-to-pypi:
