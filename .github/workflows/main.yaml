@@ -31,7 +31,8 @@ jobs:
       - name: Store the tar.gz
         uses: actions/upload-artifact@v4
         with:
-          path: ./dist/*.tar.gz
+          name: cibw-sdist
+          path: dist/*.tar.gz
           overwrite: true
 
       - name: Store the wheels
