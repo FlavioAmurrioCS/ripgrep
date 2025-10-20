@@ -1,0 +1,125 @@
+name: main
+
+on:
+  push:
+    branches: [main, test-me-*]
+    tags: ["*"]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python-version:
+          - "3.9"
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          # - windows-latest
+    runs-on: ${{ matrix.platform }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build package
+        run: uv tool run pybinpack https://github.com/BurntSushi/ripgrep.git --branch 15.0.0
+
+      # Call auditwheel to repair the wheels on Linux
+      - name: Repair wheels with auditwheel (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          pip install auditwheel
+          for whl in dist/*.whl; do
+            auditwheel repair "$whl" --wheel-dir dist/
+            rm "$whl"
+          done
+      # Fix the wheel filenames on macOS using delocate
+      - name: Fix wheel filenames on macOS (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          pip install delocate
+          ls -ltr dist/
+          for whl in dist/*.whl; do
+            delocate-wheel "$whl" --wheel-dir dist/
+          done
+
+      - name: Store the tar.gz
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+          overwrite: true
+
+      - name: Store the wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.platform }}-${{ strategy.job-index }}
+          path: ./dist/*.whl
+
+
+  publish-to-pypi:
+    name: upload release to PyPI
+    # Only run when merged to main
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # github-release:
+  #   name: Sign the Python 🐍 distribution 📦 with Sigstore and upload them to GitHub Release
+  #   # if: ${{ startsWith(github.ref, 'refs/tags/') }} # only publish to GitHub Releases on tag pushes
+  #   needs:
+  #     - test
+  #   runs-on: ubuntu-latest
+
+  #   permissions:
+  #     contents: write # IMPORTANT: mandatory for making GitHub Releases
+  #     id-token: write # IMPORTANT: mandatory for sigstore
+
+  #   steps:
+  #     - name: Download all the dists
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: python-package-distributions
+  #         path: dist/
+  #     - name: Sign the dists with Sigstore
+  #       uses: sigstore/gh-action-sigstore-python@v3.0.0
+  #       with:
+  #         inputs: >-
+  #           ./dist/*.tar.gz
+  #           ./dist/*.whl
+  #     - name: Create GitHub Release
+  #       env:
+  #         GITHUB_TOKEN: ${{ github.token }}
+  #       run: >-
+  #         gh release create
+  #         '${{ github.ref_name }}'
+  #         --repo '${{ github.repository }}'
+  #         --generate-notes
+  #     - name: Upload artifact signatures to GitHub Release
+  #       env:
+  #         GITHUB_TOKEN: ${{ github.token }}
+  #       # Upload to GitHub Release using the `gh` CLI.
+  #       # `dist/` contains the built packages, and the
+  #       # sigstore-produced signatures and certificates.
+  #       run: >-
+  #         gh release upload
+  #         '${{ github.ref_name }}' dist/**
+  #         --repo '${{ github.repository }}'
