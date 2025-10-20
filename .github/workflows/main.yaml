@@ -34,7 +34,8 @@ jobs:
         run: |
           pip install auditwheel
           for whl in dist/*.whl; do
-            auditwheel repair "$whl"
+            auditwheel repair "$whl" --wheel-dir dist/
+            rm "$whl"
           done
       # Fix the wheel filenames on macOS using delocate
       - name: Fix wheel filenames on macOS (macOS only)
@@ -42,7 +43,8 @@ jobs:
         run: |
           pip install delocate
           for whl in dist/*.whl; do
-            delocate-wheel "$whl"
+            delocate-wheel "$whl" --wheel-dir dist/
+            rm "$whl"
           done
 
       - name: Store the tar.gz
