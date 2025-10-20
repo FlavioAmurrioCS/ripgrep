@@ -33,7 +33,7 @@ jobs:
         with:
           name: python-package-distributions
           overwrite: true
-          path: dist/
+          path: dist/*
 
   publish-to-pypi:
     name: upload release to PyPI
