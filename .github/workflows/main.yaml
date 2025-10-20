@@ -28,12 +28,6 @@ jobs:
       - name: Build package
         run: uv tool run pybinpack https://github.com/BurntSushi/ripgrep.git --branch 14.0.0
 
-      - name: Store the tar.gz
-        uses: actions/upload-artifact@v4
-        with:
-          name: cibw-sdist
-          path: dist/*.tar.gz
-          overwrite: true
       # Call auditwheel to repair the wheels on Linux
       - name: Repair wheels with auditwheel (Linux only)
         if: runner.os == 'Linux'
@@ -50,6 +44,13 @@ jobs:
           for whl in dist/*.whl; do
             delocate-wheel "$whl"
           done
+
+      - name: Store the tar.gz
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+          overwrite: true
 
       - name: Store the wheels
         uses: actions/upload-artifact@v4
