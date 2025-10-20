@@ -34,6 +34,22 @@ jobs:
           name: cibw-sdist
           path: dist/*.tar.gz
           overwrite: true
+      # Call auditwheel to repair the wheels on Linux
+      - name: Repair wheels with auditwheel (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          pip install auditwheel
+          for whl in dist/*.whl; do
+            auditwheel repair "$whl" --wheel-dir=dist/
+          done
+      # Fix the wheel filenames on macOS using delocate
+      - name: Fix wheel filenames on macOS (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          pip install delocate
+          for whl in dist/*.whl; do
+            delocate-wheel -w dist/ "$whl"
+          done
 
       - name: Store the wheels
         uses: actions/upload-artifact@v4
