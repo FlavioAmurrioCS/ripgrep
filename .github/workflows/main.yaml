@@ -28,12 +28,17 @@ jobs:
       - name: Build package
         run: uv tool run pybinpack https://github.com/BurntSushi/ripgrep.git --branch 14.0.0
 
-      - name: Store the distribution packages
+      - name: Store the tar.gz
         uses: actions/upload-artifact@v4
         with:
-          name: python-package-distributions
-          overwrite: true
-          path: dist/*
+          path: ./dist/*.tar.gz
+
+      - name: Store the wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./dist/*.whl
+
 
   publish-to-pypi:
     name: upload release to PyPI
