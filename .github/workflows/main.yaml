@@ -45,7 +45,6 @@ jobs:
           ls -ltr dist/
           for whl in dist/*.whl; do
             delocate-wheel "$whl" --wheel-dir dist/
-            rm "$whl"
           done
 
       # - name: Store the tar.gz
